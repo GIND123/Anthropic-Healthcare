@@ -1,0 +1,38 @@
+# Core LLM and agent orchestration
+anthropic
+langchain
+langchain-anthropic
+langchain-community
+langgraph
+a2a-sdk[http-server]
+
+# API and demo UI
+fastapi
+uvicorn[standard]
+streamlit
+httpx
+python-dotenv
+pydantic
+pydantic-settings
+orjson
+
+# Knowledge graph and retrieval
+neo4j
+langchain-neo4j
+networkx
+chromadb
+sentence-transformers
+rapidfuzz
+
+# Data, scoring, and visualization
+numpy
+pandas
+scikit-learn
+plotly
+pyvis
+
+# Reliability and development
+tenacity
+rich
+pytest
+ruff
