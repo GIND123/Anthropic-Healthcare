@@ -1,6 +1,8 @@
 # Anima — Student Wellbeing Companion
 
 > **Hackathon Track:** Health and Wellbeing · Anthropic
+>
+Demo: https://youtu.be/FCM0MPVKUJs
 
 A multi-agent chatbot that detects stress and burnout patterns in students — undergrads, grad students, and PhDs — and routes them to the right support before crisis hits. Powered by Gemini 2.5 Flash, a four-agent pipeline, a counsellor booking system, and a full dashboard — all running locally with Flask.
 
