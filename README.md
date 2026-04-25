@@ -6,6 +6,9 @@ Demo: https://youtu.be/FCM0MPVKUJs
 
 A multi-agent chatbot that detects stress and burnout patterns in students — undergrads, grad students, and PhDs — and routes them to the right support before crisis hits. Powered by Gemini 2.5 Flash, a four-agent pipeline, a counsellor booking system, and a full dashboard — all running locally with Flask.
 
+
+<img width="1470" height="956" alt="Screenshot 2026-04-24 at 9 43 50 PM" src="https://github.com/user-attachments/assets/d03200bc-936a-4f28-b936-c9b9c1a6ac38" />
+
 ---
 
 ## The Problem in One Sentence
