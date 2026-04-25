@@ -1,487 +1,1141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Anima — PhD Wellbeing Companion</title>
-  <!-- marked.js for markdown rendering -->
-  <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Anima — Student Wellbeing</title>
+<script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+/* ── Reset & tokens ───────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p1:#667eea;--p2:#764ba2;
+  --green:#28c76f;--red:#ea5455;--amber:#ff9f43;--blue:#4facfe;
+  --bg:#f0f2fa;--surface:#fff;--border:#e4e6f0;
+  --text:#2d2d44;--muted:#888;
+  --r:16px;--sh:0 4px 20px rgba(0,0,0,.10);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);font-size:15px}
 
-    :root {
-      --purple:   #667eea;
-      --violet:   #764ba2;
-      --green:    #28c76f;
-      --red:      #ea5455;
-      --bg:       #f4f5fa;
-      --white:    #ffffff;
-      --text:     #333344;
-      --muted:    #888;
-      --radius:   18px;
-      --shadow:   0 4px 24px rgba(0,0,0,.12);
-    }
+/* ── Layout ──────────────────────────────────────────── */
+.layout{display:flex;height:100vh;overflow:hidden}
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+/* ── Sidebar ─────────────────────────────────────────── */
+.sidebar{
+  width:240px;flex-shrink:0;
+  background:linear-gradient(160deg,var(--p1) 0%,var(--p2) 100%);
+  display:flex;flex-direction:column;
+  padding:0;overflow:hidden;
+}
+.sb-logo{padding:26px 20px 18px;border-bottom:1px solid rgba(255,255,255,.15)}
+.sb-logo h1{color:#fff;font-size:1.5rem;font-weight:800;letter-spacing:-.5px}
+.sb-logo p{color:rgba(255,255,255,.75);font-size:.78rem;margin-top:3px}
 
-    /* ---- Crisis banner ---- */
-    .crisis-banner {
-      width: 100%;
-      background: #fff3cd;
-      border-bottom: 2px solid #ffc107;
-      color: #664d03;
-      text-align: center;
-      padding: 9px 16px;
-      font-size: 0.82rem;
-      font-weight: 600;
-    }
-    .crisis-banner a { color: #664d03; }
+.sb-nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:4px}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 14px;border-radius:12px;
+  color:rgba(255,255,255,.75);font-size:.88rem;font-weight:500;
+  cursor:pointer;transition:background .15s,color .15s;border:none;background:none;
+  width:100%;text-align:left;
+}
+.nav-item:hover{background:rgba(255,255,255,.15);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.22);color:#fff;font-weight:700}
+.nav-item .icon{font-size:1.1rem;width:22px;text-align:center;flex-shrink:0}
 
-    /* ---- Shell ---- */
-    .shell {
-      width: 100%;
-      max-width: 820px;
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      min-height: 0;
-    }
+.sb-footer{
+  padding:16px 16px 20px;
+  border-top:1px solid rgba(255,255,255,.15);
+}
+.sb-footer .crisis-line{
+  background:rgba(255,255,255,.15);border-radius:10px;
+  padding:12px;font-size:.75rem;color:rgba(255,255,255,.9);line-height:1.7;
+}
+.sb-footer .crisis-line strong{display:block;color:#fff;margin-bottom:4px;font-size:.78rem}
+.sb-footer .crisis-line a{color:#ffe;text-decoration:underline}
 
-    /* ---- Header ---- */
-    .header {
-      background: linear-gradient(135deg, var(--purple) 0%, var(--violet) 100%);
-      color: #fff;
-      padding: 22px 28px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-radius: 0 0 20px 20px;
-      box-shadow: var(--shadow);
-    }
-    .header-left h1 { font-size: 1.6rem; letter-spacing: -0.5px; }
-    .header-left p  { font-size: 0.82rem; opacity: .85; margin-top: 2px; }
+/* ── Main ─────────────────────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 
-    .mode-badge {
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 5px 12px;
-      border-radius: 20px;
-      border: 2px solid rgba(255,255,255,.45);
-      color: #fff;
-      letter-spacing: .5px;
-      text-transform: uppercase;
-      transition: background .3s, border-color .3s;
-      background: rgba(255,255,255,.18);
-    }
-    .mode-badge.mode-wellness { background: rgba(40,199,111,.35); border-color: var(--green); }
-    .mode-badge.mode-crisis   { background: rgba(234,84,85,.45);  border-color: var(--red);   }
+/* ── Tab panels ──────────────────────────────────────── */
+.tab-panel{display:none;flex:1;overflow:hidden;flex-direction:column}
+.tab-panel.active{display:flex}
 
-    /* ---- Chat area ---- */
-    .chat-wrap {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px 20px 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-      scroll-behavior: smooth;
-    }
+/* ══════════════════════════════════════════════════════
+   CHAT TAB
+══════════════════════════════════════════════════════ */
+.chat-topbar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:14px 24px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.chat-topbar-left{display:flex;align-items:center;gap:12px}
+.chat-topbar-left h2{font-size:1.05rem;font-weight:700}
+.agent-chip{
+  font-size:.72rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+  padding:4px 10px;border-radius:20px;transition:background .3s,color .3s;
+}
+.agent-chip.support{background:#ede9fc;color:var(--p2)}
+.agent-chip.wellness{background:#e3faec;color:#1b8a4a}
+.agent-chip.crisis{background:#fde8e8;color:#b91c1c}
 
-    /* ---- Messages ---- */
-    .msg {
-      display: flex;
-      align-items: flex-end;
-      gap: 10px;
-      max-width: 82%;
-      animation: fadeUp .25s ease;
-    }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .msg.user { align-self: flex-end; flex-direction: row-reverse; }
-    .msg.bot  { align-self: flex-start; }
+.chat-topbar-right{display:flex;gap:8px}
+.btn-sm{
+  padding:6px 14px;border-radius:8px;font-size:.8rem;font-weight:600;
+  cursor:pointer;border:1px solid var(--border);background:var(--surface);
+  color:var(--muted);transition:border-color .2s,color .2s;
+}
+.btn-sm:hover{border-color:var(--p1);color:var(--p1)}
 
-    .avatar {
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: .85rem;
-      flex-shrink: 0;
-    }
-    .msg.user .avatar { background: var(--purple); color: #fff; }
-    .msg.bot  .avatar { background: var(--violet); color: #fff; }
+/* Agent steps ticker */
+.agent-ticker{
+  display:none;background:linear-gradient(90deg,#f8f6ff,#fff);
+  border-bottom:1px solid var(--border);
+  padding:8px 24px;font-size:.78rem;color:var(--p2);
+  animation:fadeIn .2s;
+}
+.agent-ticker.visible{display:block}
+.ticker-dot{
+  display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--p1);margin-right:7px;
+  animation:pulse 1s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
-    .bubble-wrap { display: flex; flex-direction: column; gap: 4px; }
+.chat-scroll{flex:1;overflow-y:auto;padding:24px 24px 8px;display:flex;flex-direction:column;gap:16px}
+.chat-scroll::-webkit-scrollbar{width:5px}
+.chat-scroll::-webkit-scrollbar-thumb{background:#d5d5ea;border-radius:3px}
 
-    .bubble {
-      padding: 13px 17px;
-      border-radius: var(--radius);
-      line-height: 1.6;
-      font-size: .93rem;
-    }
-    .msg.user .bubble {
-      background: linear-gradient(135deg, var(--purple), var(--violet));
-      color: #fff;
-      border-bottom-right-radius: 4px;
-    }
-    .msg.bot .bubble {
-      background: var(--white);
-      color: var(--text);
-      border-bottom-left-radius: 4px;
-      box-shadow: 0 2px 12px rgba(0,0,0,.08);
-    }
+/* Messages */
+.msg{display:flex;align-items:flex-end;gap:10px;max-width:78%;animation:slideUp .22s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{align-self:flex-end;flex-direction:row-reverse}
+.msg.bot{align-self:flex-start}
+.avatar{
+  width:34px;height:34px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:.78rem;
+}
+.msg.user .avatar{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff}
+.msg.bot  .avatar{background:var(--p2);color:#fff}
+.bubble-col{display:flex;flex-direction:column;gap:6px}
+.bubble{padding:12px 16px;border-radius:var(--r);line-height:1.65;font-size:.92rem}
+.msg.user .bubble{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border-bottom-right-radius:4px}
+.msg.bot  .bubble{background:var(--surface);color:var(--text);border-bottom-left-radius:4px;box-shadow:var(--sh)}
+/* markdown inside bubble */
+.bubble p{margin-bottom:.45em}.bubble p:last-child{margin-bottom:0}
+.bubble ul,.bubble ol{margin:.35em 0 .35em 1.2em}.bubble li{margin-bottom:.2em}
+.bubble strong{font-weight:700}.bubble em{font-style:italic}
+.bubble hr{border:none;border-top:1px solid #e0e0f0;margin:.65em 0}
+.bubble code{background:#f0f0f5;padding:1px 5px;border-radius:4px;font-size:.86em}
+.bubble a{color:var(--p1)}.bubble h3,.bubble h4{font-size:.97em;font-weight:700;margin:.5em 0 .25em}
+.msg.user .bubble a{color:#ddf}
 
-    /* Markdown inside bot bubbles */
-    .bubble p  { margin-bottom: .5em; }
-    .bubble p:last-child { margin-bottom: 0; }
-    .bubble ul, .bubble ol { margin: .4em 0 .4em 1.3em; }
-    .bubble li { margin-bottom: .25em; }
-    .bubble strong { font-weight: 700; }
-    .bubble em { font-style: italic; }
-    .bubble hr { border: none; border-top: 1px solid #e0e0e0; margin: .75em 0; }
-    .bubble code { background: #f0f0f5; padding: 1px 5px; border-radius: 4px; font-size: .88em; }
-    .bubble h3, .bubble h4 { font-size: 1em; font-weight: 700; margin: .6em 0 .3em; }
-    .bubble a { color: var(--purple); }
+/* Agent tag */
+.agent-tag{font-size:.68rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+  padding:2px 8px;border-radius:8px;align-self:flex-start}
+.agent-tag.support{background:#ede9fc;color:var(--p2)}
+.agent-tag.wellness{background:#e3faec;color:#1b8a4a}
+.agent-tag.crisis{background:#fde8e8;color:#b91c1c}
 
-    /* Agent badge under bot bubbles */
-    .agent-tag {
-      font-size: .7rem;
-      font-weight: 700;
-      letter-spacing: .5px;
-      text-transform: uppercase;
-      padding: 2px 8px;
-      border-radius: 10px;
-      align-self: flex-start;
-      opacity: .85;
-    }
-    .agent-tag.support { background: #ede9fc; color: var(--violet); }
-    .agent-tag.wellness { background: #e3faec; color: #1b8a4a; }
-    .agent-tag.crisis   { background: #fde8e8; color: #b91c1c; }
+/* Quick replies */
+.quick-replies{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+.qr-chip{
+  padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:600;
+  background:#f0f0fa;color:var(--p2);border:1px solid #ddd;
+  cursor:pointer;transition:background .15s,border-color .15s;white-space:nowrap;
+}
+.qr-chip:hover{background:var(--p1);color:#fff;border-color:var(--p1)}
 
-    /* ---- Typing indicator ---- */
-    .typing-row {
-      display: none;
-      align-items: flex-end;
-      gap: 10px;
-      align-self: flex-start;
-    }
-    .typing-row.visible { display: flex; }
-    .typing-bubble {
-      background: var(--white);
-      border-radius: var(--radius);
-      border-bottom-left-radius: 4px;
-      box-shadow: 0 2px 12px rgba(0,0,0,.08);
-      padding: 14px 18px;
-      display: flex; gap: 5px; align-items: center;
-    }
-    .dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--violet);
-      animation: bounce 1.2s infinite ease-in-out;
-    }
-    .dot:nth-child(2) { animation-delay: .2s; }
-    .dot:nth-child(3) { animation-delay: .4s; }
-    @keyframes bounce {
-      0%, 60%, 100% { transform: translateY(0); }
-      30%            { transform: translateY(-7px); }
-    }
+/* ── Technique card ──────────────────────────────────── */
+.card-technique{
+  background:linear-gradient(135deg,#f8f6ff 0%,#fff 100%);
+  border:1px solid #ddd;border-left:4px solid var(--p1);
+  border-radius:var(--r);padding:16px;max-width:420px;
+  box-shadow:0 2px 12px rgba(102,126,234,.1);
+}
+.card-technique .ct-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.card-technique .ct-icon{font-size:1.5rem}
+.card-technique .ct-title{font-weight:700;font-size:.95rem}
+.card-technique .ct-tagline{font-size:.78rem;color:var(--muted)}
+.card-technique .ct-steps{list-style:none;display:flex;flex-direction:column;gap:5px}
+.card-technique .ct-steps li{
+  display:flex;gap:8px;font-size:.83rem;line-height:1.5;
+  background:#fff;padding:7px 10px;border-radius:8px;
+  border:1px solid #eee;
+}
+.card-technique .ct-steps li .step-num{
+  font-weight:800;color:var(--p1);min-width:18px;flex-shrink:0;font-size:.8rem;
+}
+.card-technique .ct-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:10px;font-size:.75rem;color:var(--muted);
+}
+.card-technique .ct-footer .duration{background:#f0f0f8;padding:3px 9px;border-radius:8px}
+.card-technique .ct-collapse-btn{
+  font-size:.75rem;color:var(--p2);background:none;border:none;cursor:pointer;font-weight:600;
+}
+.ct-steps.collapsed{display:none}
 
-    /* ---- Crisis alert panel ---- */
-    .crisis-alert {
-      display: none;
-      margin: 0 20px 4px;
-      background: #fef2f2;
-      border: 1.5px solid var(--red);
-      border-radius: 12px;
-      padding: 14px 18px;
-      font-size: .88rem;
-      color: #7f1d1d;
-      line-height: 1.6;
-    }
-    .crisis-alert.visible { display: block; }
-    .crisis-alert strong { font-weight: 700; }
+/* ── Counsellor suggestion card ──────────────────────── */
+.card-counsellors{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px;max-width:420px;box-shadow:var(--sh);
+}
+.card-counsellors .cc-header{font-weight:700;font-size:.9rem;margin-bottom:12px;
+  display:flex;align-items:center;gap:8px}
+.cc-list{display:flex;flex-direction:column;gap:8px}
+.cc-item{
+  display:flex;align-items:center;gap:10px;padding:10px;
+  background:#fafafa;border-radius:10px;border:1px solid #eee;
+}
+.cc-avatar{
+  width:38px;height:38px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-weight:800;font-size:.8rem;color:#fff;flex-shrink:0;
+}
+.cc-info{flex:1;min-width:0}
+.cc-info .cc-name{font-weight:700;font-size:.83rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-info .cc-meta{font-size:.73rem;color:var(--muted);margin-top:1px}
+.cc-book-btn{
+  padding:6px 12px;background:var(--p1);color:#fff;border:none;border-radius:8px;
+  font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap;
+  transition:opacity .15s;flex-shrink:0;
+}
+.cc-book-btn:hover{opacity:.88}
+.cc-view-all{
+  margin-top:10px;text-align:center;font-size:.8rem;color:var(--p1);
+  cursor:pointer;font-weight:600;
+}
+.cc-view-all:hover{text-decoration:underline}
 
-    /* ---- Input area ---- */
-    .input-area {
-      background: var(--white);
-      border-top: 1px solid #e8e8f0;
-      padding: 16px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      border-radius: 20px 20px 0 0;
-      box-shadow: 0 -2px 16px rgba(0,0,0,.06);
-    }
-    .input-row { display: flex; gap: 10px; align-items: center; }
+/* Typing indicator */
+.typing-row{display:none;align-items:flex-end;gap:10px;align-self:flex-start}
+.typing-row.on{display:flex}
+.typing-bubble{
+  background:var(--surface);border-radius:var(--r);border-bottom-left-radius:4px;
+  box-shadow:var(--sh);padding:13px 16px;display:flex;gap:5px;align-items:center;
+}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--p2);animation:bounce 1.2s infinite ease-in-out}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-7px)}}
 
-    textarea {
-      flex: 1;
-      padding: 12px 16px;
-      border: 2px solid #e0e0ed;
-      border-radius: 14px;
-      font-size: .95rem;
-      font-family: inherit;
-      resize: none;
-      outline: none;
-      line-height: 1.5;
-      min-height: 48px;
-      max-height: 140px;
-      overflow-y: auto;
-      transition: border-color .2s;
-    }
-    textarea:focus { border-color: var(--purple); }
+/* Chat input */
+.chat-input-area{
+  background:var(--surface);border-top:1px solid var(--border);
+  padding:14px 24px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;
+}
+.input-row{display:flex;gap:10px;align-items:flex-end}
+textarea#inputBox{
+  flex:1;padding:12px 16px;border:2px solid var(--border);border-radius:12px;
+  font-size:.93rem;font-family:inherit;resize:none;outline:none;
+  line-height:1.55;min-height:48px;max-height:130px;overflow-y:auto;
+  transition:border-color .2s;
+}
+textarea#inputBox:focus{border-color:var(--p1)}
+.btn-send{
+  padding:12px 22px;background:linear-gradient(135deg,var(--p1),var(--p2));
+  color:#fff;border:none;border-radius:12px;font-weight:700;font-size:.88rem;
+  cursor:pointer;transition:opacity .2s,transform .12s;white-space:nowrap;flex-shrink:0;
+}
+.btn-send:hover{opacity:.9;transform:translateY(-1px)}
+.btn-send:disabled{opacity:.45;cursor:not-allowed;transform:none}
 
-    .btn-send {
-      padding: 12px 22px;
-      background: linear-gradient(135deg, var(--purple), var(--violet));
-      color: #fff;
-      border: none;
-      border-radius: 14px;
-      font-weight: 700;
-      font-size: .9rem;
-      cursor: pointer;
-      transition: opacity .2s, transform .15s;
-      white-space: nowrap;
-    }
-    .btn-send:hover { opacity: .9; transform: translateY(-1px); }
-    .btn-send:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+/* ══════════════════════════════════════════════════════
+   DASHBOARD TAB
+══════════════════════════════════════════════════════ */
+.dash-wrap{flex:1;overflow-y:auto;padding:28px 28px 20px}
+.dash-wrap::-webkit-scrollbar{width:5px}
+.dash-wrap::-webkit-scrollbar-thumb{background:#d5d5ea;border-radius:3px}
+.dash-title{font-size:1.25rem;font-weight:800;margin-bottom:20px;color:var(--text)}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{
+  background:var(--surface);border-radius:var(--r);padding:20px;
+  box-shadow:var(--sh);display:flex;flex-direction:column;gap:6px;
+}
+.stat-card .sc-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.stat-card .sc-value{font-size:2rem;font-weight:800;color:var(--p2)}
+.stat-card .sc-sub{font-size:.78rem;color:var(--muted)}
 
-    .actions-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .char-hint { font-size: .75rem; color: var(--muted); }
+.dash-section{background:var(--surface);border-radius:var(--r);padding:20px;box-shadow:var(--sh);margin-bottom:20px}
+.dash-section h3{font-size:.95rem;font-weight:700;margin-bottom:16px;color:var(--text)}
+.chart-container{position:relative;height:200px}
 
-    .btn-clear {
-      background: none;
-      border: 1px solid #d0d0e0;
-      border-radius: 8px;
-      padding: 5px 12px;
-      font-size: .78rem;
-      color: var(--muted);
-      cursor: pointer;
-      transition: border-color .2s, color .2s;
-    }
-    .btn-clear:hover { border-color: var(--purple); color: var(--purple); }
+/* Upcoming appointments list in dash */
+.appt-list{display:flex;flex-direction:column;gap:10px}
+.appt-item{
+  display:flex;align-items:center;gap:14px;padding:12px 14px;
+  background:#fafafa;border-radius:12px;border:1px solid var(--border);
+}
+.appt-date-box{
+  background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;
+  border-radius:10px;padding:8px 12px;text-align:center;flex-shrink:0;min-width:52px;
+}
+.appt-date-box .adb-day{font-size:1.3rem;font-weight:800;line-height:1}
+.appt-date-box .adb-mon{font-size:.65rem;font-weight:600;text-transform:uppercase;opacity:.85}
+.appt-info{flex:1}
+.appt-info .ai-name{font-weight:700;font-size:.88rem}
+.appt-info .ai-time{font-size:.78rem;color:var(--muted);margin-top:2px}
+.appt-cancel{
+  background:none;border:1px solid #ddd;border-radius:8px;padding:5px 10px;
+  font-size:.74rem;color:var(--muted);cursor:pointer;transition:border-color .2s,color .2s;
+}
+.appt-cancel:hover{border-color:var(--red);color:var(--red)}
+.empty-state{text-align:center;padding:30px;color:var(--muted);font-size:.88rem}
+.empty-state .es-icon{font-size:2.5rem;margin-bottom:8px}
 
-    /* ---- Scrollbar ---- */
-    .chat-wrap::-webkit-scrollbar { width: 5px; }
-    .chat-wrap::-webkit-scrollbar-thumb { background: #d0d0e8; border-radius: 3px; }
-  </style>
+/* ══════════════════════════════════════════════════════
+   CALENDAR TAB
+══════════════════════════════════════════════════════ */
+.cal-wrap{flex:1;overflow-y:auto;padding:28px}
+.cal-header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.cal-header-row h2{font-size:1.2rem;font-weight:800}
+.cal-nav{display:flex;gap:8px}
+.cal-nav button{
+  width:34px;height:34px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface);cursor:pointer;font-size:.9rem;
+  display:flex;align-items:center;justify-content:center;transition:background .15s;
+}
+.cal-nav button:hover{background:var(--bg)}
+.cal-grid-wrap{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:20px}
+.cal-day-headers{display:grid;grid-template-columns:repeat(7,1fr);background:#f8f6ff}
+.cal-day-header{padding:10px 0;text-align:center;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--p2)}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-cell{
+  min-height:80px;border:1px solid #f0f0f8;padding:8px;
+  cursor:pointer;transition:background .15s;position:relative;
+}
+.cal-cell:hover{background:#f8f6ff}
+.cal-cell.other-month .cal-num{color:#bbb}
+.cal-cell.today{background:#f0edff}
+.cal-cell.today .cal-num{
+  background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;
+  width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:.85rem;
+}
+.cal-num{font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:4px;line-height:26px}
+.cal-event{
+  font-size:.67rem;background:var(--p1);color:#fff;
+  border-radius:4px;padding:2px 5px;margin-bottom:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;
+}
+.cal-section-title{font-size:.9rem;font-weight:700;margin-bottom:12px;color:var(--text)}
+
+/* ══════════════════════════════════════════════════════
+   FIND HELP TAB
+══════════════════════════════════════════════════════ */
+.find-wrap{flex:1;overflow-y:auto;padding:28px}
+.find-title{font-size:1.2rem;font-weight:800;margin-bottom:6px}
+.find-sub{font-size:.85rem;color:var(--muted);margin-bottom:20px}
+.find-filters{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.filter-chip{
+  padding:7px 16px;border-radius:20px;font-size:.8rem;font-weight:600;
+  border:1px solid var(--border);background:var(--surface);cursor:pointer;
+  color:var(--muted);transition:background .15s,color .15s,border-color .15s;
+}
+.filter-chip.active,.filter-chip:hover{background:var(--p1);color:#fff;border-color:var(--p1)}
+.counsellor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.c-card{
+  background:var(--surface);border-radius:var(--r);box-shadow:var(--sh);
+  overflow:hidden;transition:transform .15s,box-shadow .15s;
+}
+.c-card:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,0,0,.13)}
+.c-card-top{padding:20px;display:flex;gap:14px;align-items:flex-start}
+.c-avatar{
+  width:52px;height:52px;border-radius:14px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:1rem;color:#fff;
+}
+.c-info{flex:1;min-width:0}
+.c-info .c-name{font-weight:800;font-size:.97rem}
+.c-info .c-creds{font-size:.76rem;color:var(--muted);margin-top:2px}
+.c-rating{display:flex;align-items:center;gap:5px;margin-top:6px;font-size:.8rem;color:var(--amber);font-weight:700}
+.c-rating span{color:var(--muted);font-weight:400}
+.c-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.c-tag{font-size:.7rem;padding:2px 8px;border-radius:6px;font-weight:600}
+.c-tag.free{background:#e3faec;color:#1b8a4a}
+.c-tag.online{background:#e8f4fd;color:#1565c0}
+.c-tag.specialty{background:#f0edff;color:var(--p2)}
+.c-card-body{padding:0 20px 12px;font-size:.8rem;color:var(--muted);line-height:1.6}
+.c-card-footer{
+  border-top:1px solid var(--border);padding:14px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.c-footer-left{font-size:.78rem;color:var(--muted)}
+.c-footer-left .c-dist{font-weight:700;color:var(--text)}
+.c-footer-left .c-next{color:var(--green);font-weight:600;margin-top:2px}
+.btn-book{
+  padding:9px 20px;background:linear-gradient(135deg,var(--p1),var(--p2));
+  color:#fff;border:none;border-radius:10px;font-weight:700;font-size:.82rem;
+  cursor:pointer;transition:opacity .15s;
+}
+.btn-book:hover{opacity:.88}
+
+/* ══════════════════════════════════════════════════════
+   BOOKING MODAL
+══════════════════════════════════════════════════════ */
+.overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
+  z-index:100;align-items:center;justify-content:center;padding:20px;
+}
+.overlay.open{display:flex}
+.modal{
+  background:var(--surface);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.25);
+  width:100%;max-width:520px;max-height:90vh;display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.modal-header{
+  padding:22px 24px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;justify-content:space-between;
+}
+.modal-header h3{font-size:1.05rem;font-weight:800}
+.modal-header p{font-size:.8rem;color:var(--muted);margin-top:3px}
+.modal-close{
+  background:none;border:none;font-size:1.4rem;cursor:pointer;
+  color:var(--muted);line-height:1;margin-top:-2px;
+}
+.modal-body{padding:20px 24px;overflow-y:auto;flex:1}
+.modal-c-preview{display:flex;align-items:center;gap:12px;margin-bottom:20px;
+  background:#f8f6ff;border-radius:12px;padding:14px}
+.modal-c-preview .mc-avatar{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0;
+}
+.modal-c-preview .mc-info .mc-name{font-weight:700;font-size:.9rem}
+.modal-c-preview .mc-info .mc-specialty{font-size:.77rem;color:var(--muted);margin-top:2px}
+.form-label{font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:8px;display:block}
+.slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:20px}
+.slot-btn{
+  padding:10px 8px;border-radius:10px;border:1.5px solid var(--border);
+  background:var(--surface);cursor:pointer;text-align:center;
+  font-size:.78rem;line-height:1.4;transition:border-color .15s,background .15s;
+}
+.slot-btn .slot-day{font-weight:700;font-size:.82rem}
+.slot-btn .slot-time{color:var(--muted);font-size:.74rem}
+.slot-btn:hover{border-color:var(--p1);background:#f8f6ff}
+.slot-btn.selected{border-color:var(--p1);background:var(--p1);color:#fff}
+.slot-btn.selected .slot-time{color:rgba(255,255,255,.8)}
+textarea#bookingNote{
+  width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;
+  font-size:.85rem;font-family:inherit;resize:none;outline:none;height:80px;
+  transition:border-color .2s;
+}
+textarea#bookingNote:focus{border-color:var(--p1)}
+.modal-footer{
+  padding:16px 24px;border-top:1px solid var(--border);
+  display:flex;gap:10px;justify-content:flex-end;
+}
+.btn-cancel-modal{
+  padding:10px 20px;border:1px solid var(--border);border-radius:10px;
+  background:var(--surface);font-size:.86rem;font-weight:600;cursor:pointer;color:var(--muted);
+}
+.btn-confirm{
+  padding:10px 24px;background:linear-gradient(135deg,var(--p1),var(--p2));
+  color:#fff;border:none;border-radius:10px;font-weight:700;font-size:.86rem;cursor:pointer;
+  transition:opacity .15s;
+}
+.btn-confirm:disabled{opacity:.45;cursor:not-allowed}
+.btn-confirm:not(:disabled):hover{opacity:.9}
+
+/* ══════════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════════ */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast{
+  background:#2d2d44;color:#fff;padding:12px 18px;border-radius:12px;
+  font-size:.85rem;box-shadow:var(--sh);
+  animation:toastIn .25s ease;max-width:320px;line-height:1.5;
+}
+.toast.success{border-left:4px solid var(--green)}
+.toast.error{border-left:4px solid var(--red)}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Util ────────────────────────────────────────────── */
+.hidden{display:none!important}
+</style>
 </head>
 <body>
 
-<!-- Always-visible crisis banner -->
-<div class="crisis-banner">
-  Need immediate help? Call or text <strong>988</strong> (US Crisis Lifeline) &nbsp;|&nbsp;
-  Text <strong>HOME</strong> to <strong>741741</strong> &nbsp;|&nbsp;
-  <a href="https://www.iasp.info/resources/Crisis_Centres/" target="_blank" rel="noopener">Find help near you</a>
+<div class="layout">
+
+<!-- ─── Sidebar ──────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <h1>Anima</h1>
+    <p>Student Wellbeing Companion</p>
+  </div>
+  <nav class="sb-nav">
+    <button class="nav-item active" data-tab="chat">
+      <span class="icon">💬</span> Chat
+    </button>
+    <button class="nav-item" data-tab="dashboard">
+      <span class="icon">📊</span> Dashboard
+    </button>
+    <button class="nav-item" data-tab="calendar">
+      <span class="icon">📅</span> Calendar
+    </button>
+    <button class="nav-item" data-tab="find">
+      <span class="icon">🔍</span> Find a Counsellor
+    </button>
+  </nav>
+  <div class="sb-footer">
+    <div class="crisis-line">
+      <strong>⚠️ Need immediate help?</strong>
+      Call or text <strong>988</strong> · Text HOME to <strong>741741</strong><br>
+      <a href="https://www.iasp.info/resources/Crisis_Centres/" target="_blank">Find local help →</a>
+    </div>
+  </div>
+</aside>
+
+<!-- ─── Main ──────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- ══ CHAT TAB ══ -->
+  <div class="tab-panel active" id="tab-chat">
+    <div class="chat-topbar">
+      <div class="chat-topbar-left">
+        <h2>Anima</h2>
+        <span class="agent-chip support" id="agentChip">Support</span>
+      </div>
+      <div class="chat-topbar-right">
+        <button class="btn-sm" id="clearBtn">New session</button>
+      </div>
+    </div>
+    <div class="agent-ticker" id="agentTicker">
+      <span class="ticker-dot"></span>
+      <span id="tickerText">Checking wellbeing signals…</span>
+    </div>
+    <div class="chat-scroll" id="chatScroll">
+      <!-- Initial greeting -->
+      <div class="msg bot">
+        <div class="avatar">A</div>
+        <div class="bubble-col">
+          <div class="bubble">
+            <p>Hey — I'm Anima, your student wellbeing companion.</p>
+            <p>Whether you're drowning in deadlines, struggling with anxiety, dealing with a difficult tutor, or just need someone to talk to — I'm here. No judgement.</p>
+            <p>How are you doing today?</p>
+          </div>
+          <span class="agent-tag support">Anima · Support</span>
+        </div>
+      </div>
+      <!-- Typing indicator (always last child) -->
+      <div class="typing-row" id="typingRow">
+        <div class="avatar" style="background:var(--p2);color:#fff">A</div>
+        <div class="typing-bubble">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Crisis alert strip -->
+    <div id="crisisAlert" class="hidden" style="background:#fef2f2;border-top:2px solid var(--red);padding:10px 24px;font-size:.82rem;color:#7f1d1d;flex-shrink:0">
+      <strong>I noticed you may be going through something serious.</strong>
+      Call/text <strong>988</strong> · Text HOME to <strong>741741</strong> ·
+      <a href="https://www.iasp.info/resources/Crisis_Centres/" target="_blank" style="color:#7f1d1d">Find local help</a>
+    </div>
+    <div class="chat-input-area">
+      <div class="input-row">
+        <textarea id="inputBox" rows="1" placeholder="Tell me what's on your mind…" autocomplete="off"></textarea>
+        <button class="btn-send" id="sendBtn">Send</button>
+      </div>
+    </div>
+  </div><!-- /chat -->
+
+  <!-- ══ DASHBOARD TAB ══ -->
+  <div class="tab-panel" id="tab-dashboard">
+    <div class="dash-wrap" id="dashWrap">
+      <div class="dash-title">Your Wellbeing Dashboard</div>
+      <div class="dash-grid" id="dashStats">
+        <div class="stat-card"><div class="sc-label">Sessions today</div><div class="sc-value" id="dsMsgs">—</div><div class="sc-sub">messages this session</div></div>
+        <div class="stat-card"><div class="sc-label">Avg mood score</div><div class="sc-value" id="dsMood">—</div><div class="sc-sub">out of 10 (lower = more stress)</div></div>
+        <div class="stat-card"><div class="sc-label">Appointments</div><div class="sc-value" id="dsAppts">—</div><div class="sc-sub">upcoming bookings</div></div>
+      </div>
+      <div class="dash-section">
+        <h3>📈 Mood this week</h3>
+        <div class="chart-container"><canvas id="moodChart"></canvas></div>
+      </div>
+      <div class="dash-section">
+        <h3>📅 Upcoming appointments</h3>
+        <div class="appt-list" id="dashApptList">
+          <div class="empty-state"><div class="es-icon">📅</div>No upcoming appointments.<br>Visit <em>Find a Counsellor</em> to book one.</div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /dashboard -->
+
+  <!-- ══ CALENDAR TAB ══ -->
+  <div class="tab-panel" id="tab-calendar">
+    <div class="cal-wrap">
+      <div class="cal-header-row">
+        <h2 id="calTitle">April 2026</h2>
+        <div class="cal-nav">
+          <button id="calPrev">&#8249;</button>
+          <button id="calToday" style="width:auto;padding:0 12px;font-size:.78rem;font-weight:700">Today</button>
+          <button id="calNext">&#8250;</button>
+        </div>
+      </div>
+      <div class="cal-grid-wrap">
+        <div class="cal-day-headers">
+          <div class="cal-day-header">Sun</div><div class="cal-day-header">Mon</div>
+          <div class="cal-day-header">Tue</div><div class="cal-day-header">Wed</div>
+          <div class="cal-day-header">Thu</div><div class="cal-day-header">Fri</div>
+          <div class="cal-day-header">Sat</div>
+        </div>
+        <div class="cal-days" id="calDays"></div>
+      </div>
+      <div class="cal-section-title">All Appointments</div>
+      <div class="appt-list" id="calApptList">
+        <div class="empty-state"><div class="es-icon">📅</div>No appointments yet.</div>
+      </div>
+    </div>
+  </div><!-- /calendar -->
+
+  <!-- ══ FIND HELP TAB ══ -->
+  <div class="tab-panel" id="tab-find">
+    <div class="find-wrap">
+      <div class="find-title">Find a Counsellor</div>
+      <div class="find-sub">All counsellors below accept student referrals. Starred options are free for enrolled students.</div>
+      <div class="find-filters">
+        <div class="filter-chip active" data-filter="all">All</div>
+        <div class="filter-chip" data-filter="free">Free for students</div>
+        <div class="filter-chip" data-filter="online">Online available</div>
+        <div class="filter-chip" data-filter="nearby">Nearest first</div>
+      </div>
+      <div class="counsellor-grid" id="counsellorGrid">
+        <div style="color:var(--muted);font-size:.88rem;padding:20px">Loading counsellors…</div>
+      </div>
+    </div>
+  </div><!-- /find -->
+
+</main>
+</div><!-- /layout -->
+
+<!-- ─── Booking modal ──────────────────────────────────── -->
+<div class="overlay" id="bookingOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h3>Book Appointment</h3>
+        <p>Select an available time slot below</p>
+      </div>
+      <button class="modal-close" id="modalClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-c-preview">
+        <div class="mc-avatar" id="modalAvatar" style="background:#667eea">SC</div>
+        <div class="mc-info">
+          <div class="mc-name" id="modalName">Dr. Sarah Chen</div>
+          <div class="mc-specialty" id="modalSpecialty">Anxiety · CBT</div>
+        </div>
+      </div>
+      <label class="form-label">Available slots (next 14 days)</label>
+      <div class="slot-grid" id="slotGrid">
+        <div style="color:var(--muted);font-size:.82rem">Loading slots…</div>
+      </div>
+      <label class="form-label">What would you like to discuss? <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+      <textarea id="bookingNote" placeholder="e.g. exam anxiety, feeling overwhelmed…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel-modal" id="modalCancelBtn">Cancel</button>
+      <button class="btn-confirm" id="confirmBtn" disabled>Confirm Booking</button>
+    </div>
+  </div>
 </div>
 
-<div class="shell">
-
-  <!-- Header -->
-  <div class="header">
-    <div class="header-left">
-      <h1>Anima</h1>
-      <p>Your PhD wellbeing companion</p>
-    </div>
-    <span class="mode-badge" id="modeBadge">Support</span>
-  </div>
-
-  <!-- Chat messages -->
-  <div class="chat-wrap" id="chatWrap">
-
-    <!-- Greeting -->
-    <div class="msg bot">
-      <div class="avatar">A</div>
-      <div class="bubble-wrap">
-        <div class="bubble">
-          <p>Hey — I'm Anima, your PhD wellbeing companion.</p>
-          <p>Whether you're feeling overwhelmed, stuck on research, struggling with your advisor, or just need someone to talk to — I'm here. No judgment, no agenda.</p>
-          <p>How are you doing today?</p>
-        </div>
-        <span class="agent-tag support">Anima · Support</span>
-      </div>
-    </div>
-
-    <!-- Typing indicator (always last child so we can insertBefore) -->
-    <div class="typing-row" id="typingRow">
-      <div class="avatar" style="background:var(--violet);color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;">A</div>
-      <div class="typing-bubble">
-        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-      </div>
-    </div>
-
-  </div><!-- /chat-wrap -->
-
-  <!-- Crisis alert panel (hidden until triggered) -->
-  <div class="crisis-alert" id="crisisAlert">
-    <strong>I noticed you might be going through something really difficult.</strong><br>
-    Please reach out: <strong>Call/text 988</strong> · Text <strong>HOME</strong> to <strong>741741</strong> ·
-    <a href="https://www.iasp.info/resources/Crisis_Centres/" target="_blank" rel="noopener">Find local help</a>
-  </div>
-
-  <!-- Input area -->
-  <div class="input-area">
-    <div class="input-row">
-      <textarea id="inputBox" rows="1" placeholder="Tell me what's on your mind…" autocomplete="off"></textarea>
-      <button class="btn-send" id="sendBtn">Send</button>
-    </div>
-    <div class="actions-row">
-      <span class="char-hint" id="charHint"></span>
-      <button class="btn-clear" id="clearBtn">New conversation</button>
-    </div>
-  </div>
-
-</div><!-- /shell -->
+<!-- ─── Toast container ────────────────────────────────── -->
+<div class="toast-container" id="toastContainer"></div>
 
 <script>
-  // ---- Configure marked ----
-  marked.setOptions({ breaks: true, gfm: true });
+// ════════════════════════════════════════════════════════
+// Utilities
+// ════════════════════════════════════════════════════════
+marked.setOptions({breaks:true,gfm:true});
 
-  const chatWrap  = document.getElementById('chatWrap');
-  const typingRow = document.getElementById('typingRow');
-  const inputBox  = document.getElementById('inputBox');
-  const sendBtn   = document.getElementById('sendBtn');
-  const clearBtn  = document.getElementById('clearBtn');
-  const modeBadge = document.getElementById('modeBadge');
-  const crisisAlert = document.getElementById('crisisAlert');
+function toast(msg, type='success'){
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;el.textContent=msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(()=>el.remove(),4000);
+}
 
-  // ---- Auto-grow textarea ----
-  inputBox.addEventListener('input', () => {
-    inputBox.style.height = 'auto';
-    inputBox.style.height = Math.min(inputBox.scrollHeight, 140) + 'px';
+function fmtDate(iso){
+  const d=new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+}
+
+// ════════════════════════════════════════════════════════
+// Tab navigation
+// ════════════════════════════════════════════════════════
+const navItems=document.querySelectorAll('.nav-item');
+const tabPanels=document.querySelectorAll('.tab-panel');
+
+navItems.forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const tab=btn.dataset.tab;
+    navItems.forEach(n=>n.classList.toggle('active',n===btn));
+    tabPanels.forEach(p=>p.classList.toggle('active',p.id===`tab-${tab}`));
+    if(tab==='dashboard') loadDashboard();
+    if(tab==='calendar')  loadCalendar();
+    if(tab==='find')      loadCounsellors();
   });
+});
 
-  // ---- Send on Enter (Shift+Enter = newline) ----
-  inputBox.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-  });
+function goTab(name){
+  document.querySelector(`[data-tab="${name}"]`)?.click();
+}
 
-  sendBtn.addEventListener('click', sendMessage);
+// ════════════════════════════════════════════════════════
+// CHAT
+// ════════════════════════════════════════════════════════
+const chatScroll=document.getElementById('chatScroll');
+const typingRow=document.getElementById('typingRow');
+const inputBox=document.getElementById('inputBox');
+const sendBtn=document.getElementById('sendBtn');
+const agentChip=document.getElementById('agentChip');
+const agentTicker=document.getElementById('agentTicker');
+const tickerText=document.getElementById('tickerText');
+const crisisAlert=document.getElementById('crisisAlert');
 
-  clearBtn.addEventListener('click', async () => {
-    if (!confirm('Start a new conversation? Your current chat will be cleared.')) return;
-    await fetch('/api/clear', { method: 'POST' });
-    // Remove all messages except greeting and typing indicator
-    const msgs = chatWrap.querySelectorAll('.msg:not(#typingRow)');
-    msgs.forEach(m => {
-      if (!m.querySelector('.bubble')?.textContent.includes('Hey — I\'m Anima')) m.remove();
+// Auto-grow textarea
+inputBox.addEventListener('input',()=>{
+  inputBox.style.height='auto';
+  inputBox.style.height=Math.min(inputBox.scrollHeight,130)+'px';
+});
+
+inputBox.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}
+});
+sendBtn.addEventListener('click',sendMessage);
+
+document.getElementById('clearBtn').addEventListener('click',async()=>{
+  if(!confirm('Start a new session?')) return;
+  await fetch('/api/clear',{method:'POST'});
+  // Keep only first greeting
+  [...chatScroll.querySelectorAll('.msg')].slice(1).forEach(m=>m.remove());
+  crisisAlert.classList.add('hidden');
+  setAgent('support');
+});
+
+function scrollBottom(){chatScroll.scrollTop=chatScroll.scrollHeight;}
+
+function setAgent(type){
+  const labels={support:'Support',wellness:'Wellness',crisis:'Crisis Support'};
+  agentChip.textContent=labels[type]||'Support';
+  agentChip.className='agent-chip '+type;
+}
+
+function setTyping(on){typingRow.classList.toggle('on',on);scrollBottom();}
+
+async function runTicker(steps){
+  agentTicker.classList.add('visible');
+  for(const s of steps){
+    tickerText.textContent=s;
+    await new Promise(r=>setTimeout(r,600));
+  }
+  agentTicker.classList.remove('visible');
+}
+
+function addMessage(role,text,agentType,cards,quickReplies){
+  const isUser=role==='user';
+  const div=document.createElement('div');
+  div.className=`msg ${isUser?'user':'bot'}`;
+  const av=document.createElement('div');
+  av.className='avatar';av.textContent=isUser?'You':'A';
+  const col=document.createElement('div');
+  col.className='bubble-col';
+  const bubble=document.createElement('div');
+  bubble.className='bubble';
+  if(isUser){bubble.textContent=text;}
+  else{
+    bubble.innerHTML=marked.parse(text);
+    bubble.querySelectorAll('a').forEach(a=>{a.target='_blank';a.rel='noopener'});
+  }
+  col.appendChild(bubble);
+  if(!isUser&&agentType){
+    const tag=document.createElement('span');
+    const tl={support:'Anima · Support',wellness:'Anima · Wellness',crisis:'Anima · Crisis Support'};
+    tag.className=`agent-tag ${agentType}`;tag.textContent=tl[agentType]||'Anima';
+    col.appendChild(tag);
+  }
+  // Cards
+  if(cards&&cards.length){
+    cards.forEach(c=>{
+      const el=buildCard(c);
+      if(el) col.appendChild(el);
     });
-    crisisAlert.classList.remove('visible');
-    setMode('support');
-  });
-
-  // ---- Add message bubble ----
-  function addMessage(role, text, agentType) {
-    const isUser = role === 'user';
-    const div = document.createElement('div');
-    div.className = `msg ${isUser ? 'user' : 'bot'}`;
-
-    const avatar = document.createElement('div');
-    avatar.className = 'avatar';
-    avatar.textContent = isUser ? 'You' : 'A';
-
-    const bubbleWrap = document.createElement('div');
-    bubbleWrap.className = 'bubble-wrap';
-
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble';
-    if (isUser) {
-      bubble.textContent = text;
-    } else {
-      // Render markdown for bot messages
-      bubble.innerHTML = marked.parse(text);
-      // Open links in new tab
-      bubble.querySelectorAll('a').forEach(a => {
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
+  }
+  // Quick replies
+  if(quickReplies&&quickReplies.length){
+    const qr=document.createElement('div');
+    qr.className='quick-replies';
+    quickReplies.forEach(txt=>{
+      const chip=document.createElement('button');
+      chip.className='qr-chip';chip.textContent=txt;
+      chip.addEventListener('click',()=>{
+        qr.remove();
+        inputBox.value=txt;
+        sendMessage();
       });
+      qr.appendChild(chip);
+    });
+    col.appendChild(qr);
+  }
+  div.appendChild(av);div.appendChild(col);
+  chatScroll.insertBefore(div,typingRow);
+  scrollBottom();
+}
+
+function buildCard(card){
+  if(card.type==='technique') return buildTechCard(card);
+  if(card.type==='counsellor_suggest') return buildCounsellorCard(card);
+  return null;
+}
+
+function buildTechCard(c){
+  const el=document.createElement('div');
+  el.className='card-technique';
+  const stepsHtml=c.steps.map((s,i)=>
+    `<li><span class="step-num">${i+1}</span><span>${s}</span></li>`
+  ).join('');
+  el.innerHTML=`
+    <div class="ct-header">
+      <span class="ct-icon">${c.icon||'🛠️'}</span>
+      <div><div class="ct-title">${c.title}</div><div class="ct-tagline">${c.tagline||''}</div></div>
+    </div>
+    <ul class="ct-steps" id="steps-${Date.now()}">${stepsHtml}</ul>
+    <div class="ct-footer">
+      ${c.duration?`<span class="duration">⏱ ${c.duration}</span>`:'<span></span>'}
+      <button class="ct-collapse-btn" onclick="this.closest('.card-technique').querySelector('.ct-steps').classList.toggle('collapsed');this.textContent=this.textContent==='Hide steps'?'Show steps':'Hide steps'">Hide steps</button>
+    </div>`;
+  return el;
+}
+
+function buildCounsellorCard(c){
+  const el=document.createElement('div');
+  el.className='card-counsellors';
+  const items=c.counsellors.map(cn=>`
+    <div class="cc-item">
+      <div class="cc-avatar" style="background:${cn.color}">${cn.initials||'?'}</div>
+      <div class="cc-info">
+        <div class="cc-name">${cn.name}</div>
+        <div class="cc-meta">${cn.distance_miles} mi · ${cn.specialty.join(', ')}</div>
+      </div>
+      <button class="cc-book-btn" onclick="openBooking('${cn.id}')">Book</button>
+    </div>`).join('');
+  el.innerHTML=`
+    <div class="cc-header">👨‍⚕️ Suggested counsellors near you</div>
+    <div class="cc-list">${items}</div>
+    <div class="cc-view-all" onclick="goTab('find')">View all counsellors →</div>`;
+  return el;
+}
+
+async function sendMessage(){
+  const text=inputBox.value.trim();
+  if(!text) return;
+  addMessage('user',text);
+  inputBox.value='';inputBox.style.height='auto';
+  sendBtn.disabled=true;
+  setTyping(true);
+
+  // Optimistic ticker while waiting
+  const tickerPromise=runTicker(['Checking wellbeing signals…','Reading your message…','Connecting to right agent…']);
+
+  try{
+    const res=await fetch('/api/chat',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:text})
+    });
+    const data=await res.json();
+    await tickerPromise;
+    setTyping(false);
+    if(data.error){addMessage('bot','Something went wrong. Please try again.','support');}
+    else{
+      addMessage('bot',data.response,data.agent_type,data.cards,data.quick_replies);
+      setAgent(data.agent_type||'support');
+      if(data.crisis_detected) crisisAlert.classList.remove('hidden');
     }
-    bubbleWrap.appendChild(bubble);
-
-    if (!isUser && agentType) {
-      const tag = document.createElement('span');
-      tag.className = `agent-tag ${agentType}`;
-      const labels = { support: 'Anima · Support', wellness: 'Anima · Wellness', crisis: 'Anima · Crisis Support' };
-      tag.textContent = labels[agentType] || 'Anima';
-      bubbleWrap.appendChild(tag);
-    }
-
-    div.appendChild(avatar);
-    div.appendChild(bubbleWrap);
-    chatWrap.insertBefore(div, typingRow);
-    scrollToBottom();
+  }catch(e){
+    await tickerPromise;
+    setTyping(false);
+    addMessage('bot','Connection issue — please try again.','support');
   }
+  sendBtn.disabled=false;inputBox.focus();
+}
 
-  function scrollToBottom() {
-    chatWrap.scrollTop = chatWrap.scrollHeight;
-  }
+// ════════════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════════════
+let moodChartInst=null;
 
-  function setTyping(show) {
-    typingRow.classList.toggle('visible', show);
-    scrollToBottom();
-  }
+async function loadDashboard(){
+  try{
+    const [dRes,aRes]=await Promise.all([
+      fetch('/api/dashboard'),
+      fetch('/api/appointments?upcoming=true')
+    ]);
+    const d=await dRes.json();
+    const a=await aRes.json();
+    document.getElementById('dsMsgs').textContent=d.message_count||0;
+    document.getElementById('dsMood').textContent=d.avg_mood!=null?d.avg_mood:'—';
+    const upcoming=a.appointments||[];
+    document.getElementById('dsAppts').textContent=upcoming.length;
+    renderMoodChart(d.mood_timeline||[]);
+    renderApptList(upcoming,'dashApptList');
+  }catch(e){console.error('Dashboard error',e);}
+}
 
-  function setMode(type) {
-    modeBadge.className = 'mode-badge mode-' + type;
-    const labels = { support: 'Support', wellness: 'Wellness', crisis: 'Crisis Support' };
-    modeBadge.textContent = labels[type] || 'Support';
-  }
-
-  async function sendMessage() {
-    const text = inputBox.value.trim();
-    if (!text) return;
-
-    addMessage('user', text);
-    inputBox.value = '';
-    inputBox.style.height = 'auto';
-    sendBtn.disabled = true;
-    setTyping(true);
-
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
-      });
-      const data = await res.json();
-
-      setTyping(false);
-
-      if (data.error) {
-        addMessage('bot', 'Something went wrong. Please try again.', 'support');
-      } else {
-        addMessage('bot', data.response, data.agent_type || 'support');
-        setMode(data.agent_type || 'support');
-
-        if (data.crisis_detected) {
-          crisisAlert.classList.add('visible');
-        }
+function renderMoodChart(timeline){
+  const labels=timeline.map(t=>t.label);
+  // Fill nulls with previous valid value for visual continuity; keep null for no data
+  const data=timeline.map(t=>t.score);
+  const ctx=document.getElementById('moodChart').getContext('2d');
+  if(moodChartInst) moodChartInst.destroy();
+  moodChartInst=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:'Stress level (1=low,10=high)',
+        data,
+        borderColor:'#667eea',
+        backgroundColor:'rgba(102,126,234,.12)',
+        tension:.4,fill:true,
+        pointBackgroundColor:'#764ba2',pointRadius:5,pointHoverRadius:7,
+        spanGaps:true,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>`Stress: ${v.raw??'—'}/10`}}},
+      scales:{
+        y:{min:0,max:10,ticks:{stepSize:2},grid:{color:'#f0f0f8'}},
+        x:{grid:{display:false}}
       }
-    } catch (err) {
-      setTyping(false);
-      addMessage('bot', 'Connection issue — please try again.', 'support');
     }
+  });
+}
 
-    sendBtn.disabled = false;
-    inputBox.focus();
+function renderApptList(appts,containerId){
+  const el=document.getElementById(containerId);
+  if(!appts.length){
+    el.innerHTML='<div class="empty-state"><div class="es-icon">📅</div>No upcoming appointments.<br>Visit <em>Find a Counsellor</em> to book one.</div>';
+    return;
   }
+  el.innerHTML=appts.map(a=>{
+    const d=new Date(a.date+'T00:00:00');
+    return `
+    <div class="appt-item">
+      <div class="appt-date-box">
+        <div class="adb-day">${d.getDate()}</div>
+        <div class="adb-mon">${d.toLocaleString('en-US',{month:'short'})}</div>
+      </div>
+      <div class="appt-info">
+        <div class="ai-name">${a.counsellor_name}</div>
+        <div class="ai-time">📍 ${a.time} · ${a.note||'No note'}</div>
+      </div>
+      <button class="appt-cancel" onclick="cancelAppt('${a.id}')">Cancel</button>
+    </div>`;
+  }).join('');
+}
 
-  // Focus on load
-  inputBox.focus();
-  scrollToBottom();
+async function cancelAppt(id){
+  if(!confirm('Cancel this appointment?')) return;
+  await fetch(`/api/appointments/${id}`,{method:'DELETE'});
+  toast('Appointment cancelled');
+  loadDashboard();loadCalendar();
+}
+
+// ════════════════════════════════════════════════════════
+// CALENDAR
+// ════════════════════════════════════════════════════════
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
+
+function loadCalendar(){renderCalendar(calYear,calMonth);}
+
+document.getElementById('calPrev').addEventListener('click',()=>{
+  if(--calMonth<0){calMonth=11;calYear--;}
+  renderCalendar(calYear,calMonth);
+});
+document.getElementById('calNext').addEventListener('click',()=>{
+  if(++calMonth>11){calMonth=0;calYear++;}
+  renderCalendar(calYear,calMonth);
+});
+document.getElementById('calToday').addEventListener('click',()=>{
+  calYear=new Date().getFullYear();calMonth=new Date().getMonth();
+  renderCalendar(calYear,calMonth);
+});
+
+async function renderCalendar(year,month){
+  const apptRes=await fetch('/api/appointments');
+  const appts=(await apptRes.json()).appointments||[];
+  const today=new Date();
+  document.getElementById('calTitle').textContent=
+    new Date(year,month,1).toLocaleString('en-US',{month:'long',year:'numeric'});
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const prevDays=new Date(year,month,0).getDate();
+  const cells=[];
+  // prev month filler
+  for(let i=firstDay-1;i>=0;i--)
+    cells.push({day:prevDays-i,other:true,date:null});
+  // current month
+  for(let d=1;d<=daysInMonth;d++){
+    const iso=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayAppts=appts.filter(a=>a.date===iso&&a.status!=='cancelled');
+    const isToday=today.getFullYear()===year&&today.getMonth()===month&&today.getDate()===d;
+    cells.push({day:d,other:false,date:iso,appts:dayAppts,isToday});
+  }
+  // fill remaining
+  while(cells.length%7!==0) cells.push({day:cells.length-firstDay-daysInMonth+1,other:true,date:null});
+  document.getElementById('calDays').innerHTML=cells.map(c=>`
+    <div class="cal-cell ${c.other?'other-month':''} ${c.isToday?'today':''}">
+      <div class="cal-num">${c.day}</div>
+      ${(c.appts||[]).map(a=>`<div class="cal-event">${a.time} ${a.counsellor_name.split(' ').slice(-1)[0]}</div>`).join('')}
+    </div>`).join('');
+  // All appointments list
+  const all=appts.filter(a=>a.status!=='cancelled').sort((a,b)=>a.date.localeCompare(b.date));
+  renderApptList(all.filter(a=>a.date>=today.toISOString().slice(0,10)),'calApptList');
+}
+
+// ════════════════════════════════════════════════════════
+// FIND HELP
+// ════════════════════════════════════════════════════════
+let allCounsellors=[];let activeFilter='all';
+
+document.querySelectorAll('.filter-chip').forEach(chip=>{
+  chip.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    activeFilter=chip.dataset.filter;
+    renderCounsellors();
+  });
+});
+
+async function loadCounsellors(){
+  if(allCounsellors.length) return; // already loaded
+  try{
+    const res=await fetch('/api/counsellors');
+    allCounsellors=(await res.json()).counsellors||[];
+    renderCounsellors();
+  }catch(e){console.error('Counsellor load error',e);}
+}
+
+function renderCounsellors(){
+  let list=[...allCounsellors];
+  if(activeFilter==='free')   list=list.filter(c=>c.free_for_students);
+  if(activeFilter==='online') list=list.filter(c=>c.online_available);
+  if(activeFilter==='nearby') list=[...list].sort((a,b)=>a.distance_miles-b.distance_miles);
+  document.getElementById('counsellorGrid').innerHTML=list.map(c=>`
+    <div class="c-card">
+      <div class="c-card-top">
+        <div class="c-avatar" style="background:${c.color}">${c.initials}</div>
+        <div class="c-info">
+          <div class="c-name">${c.name}</div>
+          <div class="c-creds">${c.credentials}</div>
+          <div class="c-rating">★ ${c.rating} <span>(${c.review_count} reviews)</span></div>
+          <div class="c-tags">
+            ${c.free_for_students?'<span class="c-tag free">Free for students</span>':''}
+            ${c.online_available?'<span class="c-tag online">Online</span>':''}
+            ${c.specialty.slice(0,2).map(s=>`<span class="c-tag specialty">${s}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="c-card-body">${c.bio}</div>
+      <div class="c-card-footer">
+        <div class="c-footer-left">
+          <div class="c-dist">📍 ${c.distance_miles} miles away</div>
+          <div class="c-next">🟢 Next: ${c.next_slot}</div>
+        </div>
+        <button class="btn-book" onclick="openBooking('${c.id}')">Book Now</button>
+      </div>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// BOOKING MODAL
+// ════════════════════════════════════════════════════════
+let selectedSlotKey=null, bookingCounsellorId=null;
+
+async function openBooking(counsellorId){
+  bookingCounsellorId=counsellorId;
+  selectedSlotKey=null;
+  document.getElementById('confirmBtn').disabled=true;
+  // populate counsellor preview
+  await loadCounsellors(); // ensure loaded
+  const c=allCounsellors.find(x=>x.id===counsellorId);
+  if(c){
+    document.getElementById('modalAvatar').textContent=c.initials;
+    document.getElementById('modalAvatar').style.background=c.color;
+    document.getElementById('modalName').textContent=c.name;
+    document.getElementById('modalSpecialty').textContent=c.specialty.slice(0,3).join(' · ');
+  }
+  document.getElementById('slotGrid').innerHTML='<div style="color:var(--muted);font-size:.82rem">Loading…</div>';
+  document.getElementById('bookingNote').value='';
+  document.getElementById('bookingOverlay').classList.add('open');
+  // load slots
+  try{
+    const res=await fetch(`/api/counsellors/${counsellorId}/slots`);
+    const slots=(await res.json()).slots||[];
+    if(!slots.length){
+      document.getElementById('slotGrid').innerHTML='<div style="color:var(--muted)">No slots available in the next 14 days.</div>';
+      return;
+    }
+    document.getElementById('slotGrid').innerHTML=slots.slice(0,12).map(s=>`
+      <button class="slot-btn" data-key="${s.key}" data-date="${s.date}" data-time="${s.time}"
+        onclick="selectSlot(this,'${s.key}')">
+        <div class="slot-day">${s.day_label}</div>
+        <div class="slot-time">${s.time}</div>
+      </button>`).join('');
+  }catch(e){
+    document.getElementById('slotGrid').innerHTML='<div style="color:var(--red)">Failed to load slots.</div>';
+  }
+}
+
+function selectSlot(btn,key){
+  document.querySelectorAll('.slot-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedSlotKey=key;
+  document.getElementById('confirmBtn').disabled=false;
+}
+
+function closeModal(){
+  document.getElementById('bookingOverlay').classList.remove('open');
+  bookingCounsellorId=null;selectedSlotKey=null;
+}
+
+document.getElementById('modalClose').addEventListener('click',closeModal);
+document.getElementById('modalCancelBtn').addEventListener('click',closeModal);
+document.getElementById('bookingOverlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('bookingOverlay')) closeModal();
+});
+
+document.getElementById('confirmBtn').addEventListener('click',async()=>{
+  if(!selectedSlotKey||!bookingCounsellorId) return;
+  const btn=document.getElementById('slotGrid').querySelector(`[data-key="${selectedSlotKey}"]`);
+  const date=btn?.dataset.date, time=btn?.dataset.time;
+  const note=document.getElementById('bookingNote').value.trim();
+  try{
+    const res=await fetch('/api/appointments',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({counsellor_id:bookingCounsellorId,date,time,note})
+    });
+    if(res.ok){
+      closeModal();
+      const c=allCounsellors.find(x=>x.id===bookingCounsellorId);
+      toast(`✅ Appointment booked with ${c?.name||'counsellor'} on ${fmtDate(date)} at ${time}`,'success');
+      // Invalidate counsellor cache so next load gets fresh slots
+      allCounsellors=[];
+    } else {
+      toast('Booking failed. Please try again.','error');
+    }
+  }catch(e){toast('Network error.','error');}
+});
+
+// ════════════════════════════════════════════════════════
+// Init
+// ════════════════════════════════════════════════════════
+inputBox.focus();
 </script>
 </body>
 </html>
