@@ -1,8 +1,8 @@
-# Anima — Academic Stress & Burnout Companion
+# Anima — Student Wellbeing Companion
 
 > **Hackathon Track:** Health and Wellbeing · Anthropic
 
-A multi-agent chatbot that detects burnout patterns in academics — undergrads, grad students, and professors — and routes them to the right support before crisis hits. Powered by Claude, LangGraph, A2A, and a Karpathy-style knowledge graph.
+A multi-agent chatbot that detects stress and burnout patterns in students — undergrads, grad students, and PhDs — and routes them to the right support before crisis hits. Powered by Gemini 2.5 Flash, a four-agent pipeline, a counsellor booking system, and a full dashboard — all running locally with Flask.
 
 ---
 
@@ -16,7 +16,7 @@ Academic stress compounds silently. By the time someone asks for help, they've b
 |---|---|
 | **Undergrad** | Exam anxiety, social isolation, major uncertainty, financial pressure |
 | **Grad / PhD** | Advisor conflict, research stagnation, publication pressure, imposter syndrome, funding |
-| **Professor** | Grant pressure, teaching overload, tenure anxiety, service burnout, isolation |
+| **All students** | Sleep disruption, motivation loss, procrastination, deadline overload |
 
 ### Why Existing Tools Fail
 
@@ -29,137 +29,103 @@ Academic stress compounds silently. By the time someone asks for help, they've b
 
 ## What Anima Does
 
-1. **Daily check-in** — 60-second mood + stressor snapshot via chat
-2. **Pattern detection** — LangGraph state machine tracks signals across sessions
-3. **Contextual routing** — Knowledge graph maps your stressors to the right resource
-4. **Explainable output** — Shows *why* it's suggesting something ("3 of the last 5 check-ins flagged sleep disruption + advisor tension")
-5. **Safe escalation** — Hard-coded crisis guard that always surfaces 988 when needed
+1. **Multi-agent routing** — Orchestrator classifies each message and sends it to the right specialist agent (Crisis / Support / Wellness)
+2. **Pattern detection** — Mood scores are logged per session; the Dashboard shows trends over time
+3. **Inline resource cards** — When an agent recommends a technique, a structured card appears in-chat with step-by-step instructions
+4. **Counsellor booking** — Browse six campus counsellors, filter by specialty, and book an appointment slot — all from the app
+5. **Safe escalation** — Hard-coded crisis guard surfaces 988 + text line instantly on any crisis signal
+6. **Calendar** — All booked appointments appear on a monthly calendar with full event list
 
 ---
 
 ## System Architecture
 
-```mermaid
-flowchart TD
-    UI[Flask Chat UI] --> API[Flask Backend]
-    API --> LG[LangGraph Workflow]
+```
+User (Browser)
+    │
+    ▼
+Flask App (app.py)
+    │
+    ▼
+Orchestrator
+    ├── CrisisAgent      ← runs first, always; keyword + LLM classification
+    │       └── If crisis → warm response + 988 block; stops pipeline
+    ├── SupportAgent     ← emotional support, CBT/ACT, coping techniques (tool use)
+    └── WellnessAgent    ← study strategies, sleep hygiene, time management (tool use)
 
-    LG --> SA[Safety Guard Agent]
-    SA -->|safe| TA[Triage Agent]
-    SA -->|crisis| CR[Crisis Resources 988]
+Tools (called automatically by Gemini function calling)
+    ├── get_coping_technique(category, key)
+    ├── assess_student_stress(text)
+    ├── get_study_technique(challenge)
+    ├── get_time_management_advice(problem)
+    ├── get_sleep_tip(issue)
+    └── get_breathing_exercise(purpose)
 
-    TA -->|emotional support| CA[Companion Agent]
-    TA -->|resource lookup| RA[Resource Navigator Agent]
-    TA -->|both| CA
-
-    CA --> KG[Knowledge Graph Retriever]
-    RA --> KG
-
-    KG --> GDB[(Graph: NetworkX / Neo4j)]
-    GDB -->|nodes + paths| KG
-
-    CA --> Claude[Claude API]
-    RA --> Claude
-
-    Claude --> MEM[Session Memory Store]
-    MEM --> LG
-
-    subgraph A2A [A2A Agent Cards]
-        AC[companion.json]
-        AR[resource-navigator.json]
-        AS[safety-guard.json]
-    end
-    LG -.-> A2A
+Session Storage
+    ├── data/sessions/{session_id}.json   ← mood log + message history
+    └── data/appointments.json            ← booked counsellor appointments
 ```
 
 ---
 
-## Karpathy-Style Knowledge Graph
+## Four-Tab SPA
 
-Inspired by Andrej Karpathy's approach to knowledge as a **traversable wiki** — every concept is a node with structured metadata, connected to related concepts by typed edges. The graph is pre-seeded with academic mental health domain knowledge.
-
-### Node Types
-
-| Type | Examples |
+| Tab | What it does |
 |---|---|
-| `Stressor` | `advisor_conflict`, `research_stagnation`, `financial_stress`, `exam_anxiety` |
-| `Signal` | `sleep_disruption`, `motivation_loss`, `social_withdrawal`, `crying_spells` |
-| `Resource` | `counseling_center`, `writing_center`, `ombudsperson`, `988_lifeline` |
-| `CopingStrategy` | `boundary_setting`, `small_step_planning`, `peer_support`, `journaling` |
-| `RiskPattern` | `burnout_early`, `burnout_severe`, `crisis_ideation`, `attrition_risk` |
+| **Chat** | Conversational agent with agent-step ticker, inline technique cards, quick-reply chips |
+| **Dashboard** | Stat grid (messages, mood entries, avg mood), Chart.js mood trend line, upcoming appointments |
+| **Calendar** | Monthly grid view with appointments on dates; prev/next/today navigation |
+| **Find a Counsellor** | Six dummy counsellors with filter chips (free / online / nearby), slot grid, booking modal |
 
-### Edge Types
+---
 
-| Edge | Meaning |
+## Agent Design
+
+### Orchestrator
+- Entry point for every message
+- Crisis check → agent classification → route to specialist → build inline cards → log mood
+- Returns: `response`, `agent_type`, `crisis_detected`, `cards`, `quick_replies`, `agent_steps`, `mood_score`
+
+### Crisis Agent
+- **Runs first, always — no bypass**
+- Keyword pattern match (fast path) for high-certainty crisis signals
+- LLM fallback (`application/json` response) for ambiguous signals
+- If triggered: warm empathetic response + 988 Lifeline + Crisis Text Line + IASP link
+
+### Support Agent
+- Emotional support using CBT, ACT, and Motivational Interviewing principles
+- Gemini automatic function calling → `get_coping_technique`, `assess_student_stress`
+- System prompt covers all student types; validates first, never diagnoses
+- Maintains session context (last 5 turns)
+
+### Wellness Agent
+- Practical skills: study techniques, sleep hygiene, time management, breathing exercises
+- Gemini automatic function calling → `get_study_technique`, `get_time_management_advice`, `get_sleep_tip`, `get_breathing_exercise`
+- Pulls structured technique data from the coping library and injects it into the response
+
+---
+
+## Inline Technique Cards
+
+When the agent response mentions a specific technique (e.g. "box breathing", "Pomodoro", "Feynman"), the UI renders a collapsible card below the message with:
+- Technique name, tagline, duration
+- Step-by-step instructions (expandable)
+- Science note where available
+
+Detection is done server-side via `_TECHNIQUE_MAP` — a keyword → `(category, key)` mapping evaluated against the lowercased response before it leaves the Orchestrator.
+
+---
+
+## Knowledge Library (`tools/coping_tools.py`)
+
+| Category | Techniques |
 |---|---|
-| `TRIGGERS` | Stressor → Signal |
-| `INDICATES` | Signal → RiskPattern |
-| `ADDRESSES` | Resource → Stressor |
-| `MITIGATES` | CopingStrategy → Stressor |
-| `ESCALATES_TO` | RiskPattern → Resource |
-
-### Why This Works
-
-When a user signals "I haven't slept in days and I'm avoiding my advisor", the retriever:
-1. Maps `sleep_disruption` → `INDICATES` → `burnout_early`
-2. Maps `advisor_avoidance` → `INDICATES` → `burnout_early` + `attrition_risk`
-3. Traverses `burnout_early` → `ESCALATES_TO` → `counseling_center`
-4. Returns the path as an **explanation** to the user — not a black box
-
----
-
-## Agent Design (A2A)
-
-### Safety Guard Agent
-- **Runs first, always** — no bypass
-- Pattern matches on crisis keywords (self-harm, suicidal ideation, hopelessness)
-- If triggered: surfaces 988 + campus emergency line immediately, halts other agents
-- A2A card: `agents/safety-guard.json`
-
-### Triage Agent
-- Classifies incoming message: emotional support needed / resource lookup needed / both
-- Routes to Companion and/or Resource Navigator
-- Uses signal vocabulary extracted by Claude
-
-### Companion Agent
-- Empathetic conversational support via Claude
-- System prompt enforces: validate first, never diagnose, warm soft escalation
-- Maintains session context (last 5 check-ins summarized)
-- A2A card: `agents/companion.json`
-
-### Resource Navigator Agent
-- Queries the knowledge graph with extracted stressor signals
-- Returns ranked resources with graph-path explanation
-- Adapts to role (undergrad / grad / professor)
-- A2A card: `agents/resource-navigator.json`
-
----
-
-## LangGraph Workflow
-
-```
-START
-  └─→ safety_check         # always first
-       ├─→ [crisis]   → emit_crisis_resources → END
-       └─→ [safe]     → extract_signals
-                              └─→ triage
-                                   ├─→ companion_node
-                                   ├─→ resource_node
-                                   └─→ merge_response
-                                            └─→ update_memory → END
-```
-
-**State schema:**
-```python
-class AnimaState(TypedDict):
-    messages: list[BaseMessage]
-    role: Literal["undergrad", "grad", "professor"]
-    signals: list[str]
-    risk_level: Literal["low", "moderate", "high", "crisis"]
-    resources: list[dict]
-    session_id: str
-    turn_count: int
-```
+| `breathing` | Box breathing, 4-7-8, Physiological sigh |
+| `grounding` | 5-4-3-2-1 sensory, Safe place visualisation, Cold water reset |
+| `study` | Pomodoro, Active recall + spaced repetition, Feynman, Mind mapping, Deep work |
+| `time_management` | Time blocking, Eisenhower matrix, 2-minute rule |
+| `phd` | Reframing imposter syndrome, Advisor conflict strategies, Research block |
+| `sleep` | Consistent wake time, Screen sunset, Caffeine curfew, Brain dump |
 
 ---
 
@@ -167,36 +133,29 @@ class AnimaState(TypedDict):
 
 ```
 Anthropic-Healthcare/
-├── app.py                        # Streamlit UI entry point
+├── app.py                          # Flask entry point + all API routes
 ├── requirements.txt
 ├── .env.example
 │
-├── src/
-│   ├── workflow.py               # LangGraph state machine
-│   ├── agents/
-│   │   ├── safety_guard.py       # Crisis detection (runs first)
-│   │   ├── triage.py             # Signal extraction + routing
-│   │   ├── companion.py          # Empathy + conversation
-│   │   └── resource_navigator.py # KG-backed resource lookup
-│   ├── graph/
-│   │   ├── loader.py             # Load KG from JSON seed
-│   │   ├── retriever.py          # Traverse graph, return paths
-│   │   └── schema.py             # Node/edge type definitions
-│   ├── memory.py                 # Session memory (in-memory dict)
-│   └── prompts.py                # All Claude system prompts
+├── agents/
+│   ├── orchestrator.py             # Routes messages across agents
+│   ├── crisis_agent.py             # Crisis detection + response
+│   ├── support_agent.py            # Emotional support (tool use)
+│   └── wellness_agent.py           # Practical wellness skills (tool use)
 │
-├── agents/                       # A2A agent card JSONs
-│   ├── companion.json
-│   ├── resource-navigator.json
-│   └── safety-guard.json
+├── tools/
+│   ├── session_tools.py            # Session + appointment CRUD (JSON files)
+│   ├── assessment.py               # Crisis level detection, stress scoring
+│   ├── coping_tools.py             # Full evidence-based technique library
+│   ├── resources.py                # Crisis lines by region
+│   └── counsellors.py              # Dummy counsellor data + slot generation
 │
-├── data/
-│   └── knowledge_graph.json      # Pre-seeded KG (stressors, resources, edges)
+├── templates/
+│   └── index.html                  # Single-page app (Chat / Dashboard / Calendar / Find)
 │
-└── tests/
-    ├── test_safety_guard.py
-    ├── test_graph_retriever.py
-    └── test_workflow.py
+└── data/
+    ├── sessions/                   # {session_id}.json — per-session mood + history
+    └── appointments.json           # All booked appointments
 ```
 
 ---
@@ -204,7 +163,7 @@ Anthropic-Healthcare/
 ## Quick Start
 
 ```bash
-git clone https://github.com/your-repo/Anthropic-Healthcare
+git clone https://github.com/GIND123/Anthropic-Healthcare
 cd Anthropic-Healthcare
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
@@ -212,50 +171,28 @@ pip install -r requirements.txt
 cp .env.example .env
 # Add your GEMINI_API_KEY to .env
 
-python app.py
+PORT=5001 python app.py
 ```
 
-The local Flask app runs at:
+Open `http://127.0.0.1:5001` in your browser.
 
-```bash
-http://127.0.0.1:5001
-```
-
-For a production-style local run:
-
-```bash
-bash start.sh
-```
+> **Note for macOS users:** Port 5000 is occupied by AirPlay Receiver. Always use `PORT=5001`.
 
 ---
 
-## Deploy on Render
+## API Routes
 
-This repo includes Render-ready deployment files:
-
-- `render.yaml` defines the Python web service, build command, start command, health check, and required env vars.
-- `.python-version` pins Python to `3.11.11` so Render does not default to a newer runtime unexpectedly.
-- `start.sh` runs Gunicorn and binds to Render's `$PORT`.
-- `Procfile` points to the same start script.
-
-Render settings if creating the service manually:
-
-```text
-Runtime: Python 3
-Root Directory: leave blank
-Build Command: pip install -r requirements.txt
-Start Command: bash start.sh
-Health Check Path: /healthz
-```
-
-Required environment variables in Render:
-
-```text
-GEMINI_API_KEY=your_key_here
-SECRET_KEY=generate_or_set_a_random_value
-```
-
-If Render logs say `can't open file '/opt/render/project/src/app.py'`, the service is deploying the wrong branch/commit or the Root Directory is misconfigured. Use branch `main`, leave Root Directory blank, clear the build cache, and redeploy the latest commit.
+| Method | Route | Purpose |
+|---|---|---|
+| `GET` | `/` | Serve the SPA |
+| `POST` | `/api/chat` | Send a message, get agent response |
+| `POST` | `/api/clear` | Clear session history |
+| `GET` | `/api/session` | Get current session stats |
+| `GET` | `/api/dashboard` | Mood trend data for Chart.js |
+| `GET` | `/api/counsellors` | All counsellors with next available slot |
+| `GET` | `/api/counsellors/<id>/slots` | Available slots for one counsellor |
+| `GET/POST` | `/api/appointments` | List or create appointments |
+| `DELETE` | `/api/appointments/<id>` | Cancel an appointment |
 
 ---
 
@@ -263,38 +200,14 @@ If Render logs say `can't open file '/opt/render/project/src/app.py'`, the servi
 
 | Layer | Choice | Why |
 |---|---|---|
-| UI | Streamlit | Zero frontend code, ships in minutes |
-| Backend | FastAPI | Async, clean REST, easy to test |
-| LLM | Claude (claude-sonnet-4-6) | Best-in-class safety + instruction following |
-| Orchestration | LangGraph | State machine flow, built-in streaming, checkpointing |
-| Agent protocol | A2A SDK | Interoperability, judge-visible agent cards |
-| Knowledge graph | NetworkX + JSON seed | No Docker needed for demo; swap to Neo4j in prod |
-| Embeddings | sentence-transformers | Local, fast, no extra API calls |
-| Memory | In-process dict (session) | Simple, works for demo; Redis in prod |
-
----
-
-## A2A Agent Cards (Sample)
-
-**`agents/companion.json`**
-```json
-{
-  "name": "anima-companion",
-  "version": "1.0.0",
-  "description": "Empathetic academic wellbeing companion. Validates, supports, and gently routes.",
-  "capabilities": ["emotional_support", "burnout_check_in", "advisor_prep"],
-  "input_schema": {
-    "message": "string",
-    "role": "undergrad | grad | professor",
-    "session_id": "string"
-  },
-  "output_schema": {
-    "response": "string",
-    "signals_detected": ["string"],
-    "escalate": "boolean"
-  }
-}
-```
+| UI | Flask + vanilla JS | Zero build step, ships in minutes |
+| LLM | Gemini 2.5 Flash (`google-genai` SDK) | Fast, cost-efficient, native function calling |
+| Agent orchestration | Custom Python pipeline | Full control, no framework overhead |
+| Tool execution | Gemini automatic function calling | Agent decides when to call tools |
+| Knowledge base | Plain Python dicts (`coping_tools.py`) | No vector DB needed for demo |
+| Session storage | Local JSON files | Simple, persistent across restarts |
+| Charts | Chart.js 4 (CDN) | No npm required |
+| Markdown rendering | marked.js 9 (CDN) | Rich agent responses in chat bubbles |
 
 ---
 
@@ -304,31 +217,17 @@ If Render logs say `can't open file '/opt/render/project/src/app.py'`, the servi
 - Never diagnose mental illness
 - Never give medical advice
 - Always surface 988 when crisis signals detected
-- Never store raw journal text — only structured signals
-- No advisor or department can access individual data
+- Crisis agent runs before any other agent — it cannot be bypassed
 
-**Crisis threshold:** any of — `suicidal_ideation`, `self_harm`, `hopelessness_severe`, `"I want to disappear"` pattern → immediate 988 surface + session flag.
-
----
-
-## Evaluation Criteria
-
-| What judges see | What it demonstrates |
-|---|---|
-| Live chat check-in → burnout detection in <10s | End-to-end latency, UX quality |
-| Knowledge graph path shown below response | Explainability, KG integration |
-| A2A agent cards at `/agents/` | A2A protocol compliance |
-| Role switching (undergrad vs professor) | Context-aware personalization |
-| Crisis keyword → 988 surface instantly | Safety-first design |
-| LangGraph trace in sidebar | Agentic orchestration |
+**Crisis threshold:** any of — `suicidal ideation`, `self-harm`, `hopelessness severe`, `"I want to disappear"` pattern → immediate 988 surface + session flag.
 
 ---
 
 ## What's Not in Scope (Hackathon Cut)
 
-- Real university database integration (we seed the graph)
-- Persistent multi-session memory (we use in-process dict)
-- Auth / login (single anonymous session)
+- Real university database integration
+- Persistent multi-user auth / login
+- Push notifications or reminders
 - Multilingual support
 - IRB-approved deployment
 
@@ -338,9 +237,6 @@ If Render logs say `can't open file '/opt/render/project/src/app.py'`, the servi
 
 - Evans et al., *Nature Biotechnology*, 2018 — graduate student mental health survey
 - Levecque et al., *Research Policy*, 2017 — PhD mental health risk factors
-- U-DOC Systematic Review — supervisor relationship as protective factor
-- [LangGraph Docs](https://langchain-ai.github.io/langgraph/)
-- [A2A Protocol](https://google.github.io/A2A/)
-- [Claude API Docs](https://docs.anthropic.com)
+- [Gemini API Docs](https://ai.google.dev/gemini-api/docs)
 - [988 Suicide & Crisis Lifeline](https://988lifeline.org)
-- Karpathy, "The Unreasonable Effectiveness of Recurrent Neural Networks" — knowledge graph traversal philosophy
+- [Crisis Text Line](https://www.crisistextline.org)
