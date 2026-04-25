@@ -41,7 +41,7 @@ Academic stress compounds silently. By the time someone asks for help, they've b
 
 ```mermaid
 flowchart TD
-    UI[Streamlit Chat UI] --> API[FastAPI Backend]
+    UI[Flask Chat UI] --> API[Flask Backend]
     API --> LG[LangGraph Workflow]
 
     LG --> SA[Safety Guard Agent]

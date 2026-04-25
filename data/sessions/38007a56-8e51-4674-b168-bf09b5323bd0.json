@@ -1,0 +1,16 @@
+{
+  "session_id": "38007a56-8e51-4674-b168-bf09b5323bd0",
+  "created_at": "2026-04-24T19:50:57.881726",
+  "history": [
+    {
+      "role": "user",
+      "content": "I have been struggling with imposter syndrome lately, everyone in my lab seems so much smarter than me"
+    },
+    {
+      "role": "assistant",
+      "content": "Oh, that's such a tough feeling, and it's incredibly common in PhD life to look around and feel like everyone else has it all figured out, or is inherently smarter. It sounds like you're really grappling with that sense of not belonging, or not being good enough, despite all the hard work you're putting in.\n\nCould you tell me a bit more about what \"everyone in my lab seems so much smarter than me\" looks like or feels like for you on a day-to-day basis?"
+    }
+  ],
+  "mood_log": [],
+  "updated_at": "2026-04-24T19:51:00.959049"
+}

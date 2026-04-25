@@ -1,0 +1,32 @@
+{
+  "session_id": "7238f823-00f6-4245-b667-d241170dab0f",
+  "created_at": "2026-04-24T19:50:04.891824",
+  "history": [
+    {
+      "role": "user",
+      "content": "I feel like I am failing my PhD. My advisor barely talks to me."
+    },
+    {
+      "role": "assistant",
+      "content": "Oh, my dear, it sounds like you're carrying a heavy weight right now. Feeling like you're failing, especially when your advisor seems distant, can be incredibly isolating and disheartening. It's completely understandable that you'd feel this way.\n\nThat feeling of being adrift, unsure if you're measuring up, is something many PhD students encounter. It's often amplified when communication with your advisor isn't what you'd hope for.\n\nCould you tell me a little more about what makes you feel like you're failing? What's been happening recently that's contributing to these thoughts?"
+    },
+    {
+      "role": "user",
+      "content": "I have a huge reading list and cannot retain anything I read"
+    },
+    {
+      "role": "assistant",
+      "content": "This is a fantastic place to start: **Active Recall + Spaced Repetition**. It's the most evidence-backed way to retain information, especially when you have a lot to get through.\n\nHere's how to do it:\n\n1.  **Read a section, then close your notes completely.** Don't just highlight or re-read; truly try to recall.\n2.  **Write or say everything you remember.** This is the \"active recall\" part. Force your brain to retrieve the information without any cues.\n3.  **Check what you missed.** Open your notes and compare what you remembered with the actual material.\n4.  **Review only the gaps.** Focus your attention on the information you failed to recall.\n5.  **Repeat steps 1-4.** Go through this cycle for each section you read.\n6.  **Space your repetitions.** This is the \"spaced repetition\" part. Review the material you studied today:\n    *   Tomorrow\n    *   In 3 days\n    *   In 1 week\n    *   In 2 weeks\n    *   And so on.\n\nThe key is that retrieval practice strengthens memory consolidation significantly more than just re-reading. Try to integrate this into your reading routine for even just one article or chapter this week.\n\nHow does that sound as a starting point?"
+    },
+    {
+      "role": "user",
+      "content": "I just feel so hopeless and worthless, nobody cares"
+    },
+    {
+      "role": "assistant",
+      "content": "Oh, my dear, hearing you say you feel so deeply hopeless and worthless, and like nobody cares, truly breaks my heart. It sounds like you're carrying an incredibly heavy burden right now, and feeling completely alone with all of it. Please know that I'm here, listening to every word.\n\nWhen you're feeling this level of hopelessness and worthlessness, and like nobody cares, are you having thoughts of harming yourself right now?\n\nWhile you're processing that, let's try a very gentle grounding exercise together. Can you just take a moment to really feel your feet on the floor? Notice the pressure, the texture of your socks or shoes, the firmness of the ground beneath you. Just for a few breaths, focusing only on that sensation.\n\n---\n**If you're in crisis right now:**\n- \ud83d\udcde Call or text **988** (US Suicide & Crisis Lifeline \u2014 24/7, free)\n- \ud83d\udcac Text **HOME** to **741741** (Crisis Text Line \u2014 24/7)\n- \ud83c\udf0d [Find local crisis line](https://www.iasp.info/resources/Crisis_Centres/)\n\nYou don't have to face this alone. These are free and confidential.\n---"
+    }
+  ],
+  "mood_log": [],
+  "updated_at": "2026-04-24T19:50:19.958601"
+}
