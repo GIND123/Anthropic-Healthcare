@@ -210,15 +210,52 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
 cp .env.example .env
-# Add your ANTHROPIC_API_KEY to .env
+# Add your GEMINI_API_KEY to .env
 
-streamlit run app.py
+python app.py
 ```
 
-Optional — run the FastAPI backend separately (if using decoupled mode):
+The local Flask app runs at:
+
 ```bash
-uvicorn src.api:app --reload --port 8000
+http://127.0.0.1:5001
 ```
+
+For a production-style local run:
+
+```bash
+bash start.sh
+```
+
+---
+
+## Deploy on Render
+
+This repo includes Render-ready deployment files:
+
+- `render.yaml` defines the Python web service, build command, start command, health check, and required env vars.
+- `.python-version` pins Python to `3.11.11` so Render does not default to a newer runtime unexpectedly.
+- `start.sh` runs Gunicorn and binds to Render's `$PORT`.
+- `Procfile` points to the same start script.
+
+Render settings if creating the service manually:
+
+```text
+Runtime: Python 3
+Root Directory: leave blank
+Build Command: pip install -r requirements.txt
+Start Command: bash start.sh
+Health Check Path: /healthz
+```
+
+Required environment variables in Render:
+
+```text
+GEMINI_API_KEY=your_key_here
+SECRET_KEY=generate_or_set_a_random_value
+```
+
+If Render logs say `can't open file '/opt/render/project/src/app.py'`, the service is deploying the wrong branch/commit or the Root Directory is misconfigured. Use branch `main`, leave Root Directory blank, clear the build cache, and redeploy the latest commit.
 
 ---
 

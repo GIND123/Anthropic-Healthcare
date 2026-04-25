@@ -15,8 +15,6 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "anima-dev-secret-2024")
 
 api_key = os.getenv("GEMINI_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
-if not api_key:
-    raise RuntimeError("No GEMINI_API_KEY found in .env")
 
 from agents.orchestrator import Orchestrator
 from tools.session_tools import (
@@ -25,7 +23,7 @@ from tools.session_tools import (
 )
 from tools.counsellors import COUNSELLORS, get_slots, get_counsellor_list_with_next_slot
 
-orchestrator = Orchestrator(api_key=api_key)
+orchestrator = Orchestrator(api_key=api_key) if api_key else None
 
 
 def _sid():
@@ -42,6 +40,14 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/healthz")
+def healthz():
+    return jsonify({
+        "status": "ok",
+        "model_configured": bool(api_key),
+    })
+
+
 # ── Chat ─────────────────────────────────────────────────────────────────────
 
 @app.route("/api/chat", methods=["POST"])
@@ -50,6 +56,19 @@ def chat():
     message = (data.get("message") or "").strip()
     if not message:
         return jsonify({"error": "Empty message"}), 400
+    if orchestrator is None:
+        return jsonify({
+            "response": (
+                "Anima is online, but the model API key is not configured yet. "
+                "Add GEMINI_API_KEY in the Render service environment and redeploy."
+            ),
+            "agent_type": "support",
+            "crisis_detected": False,
+            "cards": [],
+            "quick_replies": ["Configure GEMINI_API_KEY", "Try again later"],
+            "agent_steps": ["App is healthy", "Model key missing"],
+            "mood_score": 3,
+        }), 503
     try:
         result = orchestrator.process(message, _sid())
         return jsonify(result)
